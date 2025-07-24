@@ -3,13 +3,13 @@
 #include <iostream>
 
 // Static member definitions
-double Fitter::q_beam = -1;
-double Fitter::L_beam = 1;
+double Fitter::q_beam = 0;
+double Fitter::L_beam = 0;
 double Fitter::L_target = 0;
-double Fitter::EB = 5.75;
-double Fitter::xB = 0.16;
-double Fitter::Q2 = 1.33;
-double Fitter::t = -0.21;
+double Fitter::EB = 0;
+double Fitter::xB = 0;
+double Fitter::Q2 = 0;
+double Fitter::t = 0;
 double Fitter::theta_Tpol = 0;
 double Fitter::phi_Tpol = 0;
 
@@ -21,7 +21,7 @@ Fitter::Fitter(const std::vector<InputDataPoint> &data)
 }
 
 void Fitter::Fit() {
-  TMinuit minuit(1); // Fit ImH, ReH, ImE, ReE, ImHt, ReHt
+  TMinuit minuit(2); // Fit ImH, ReH, ImE, ReE, ImHt, ReHt
   minuit.SetFCN(Fitter::chi2Function);
 
   double arglist[10];
@@ -30,7 +30,7 @@ void Fitter::Fit() {
   minuit.mnexcm("SET ERR", arglist, 1, ierflg);
 
   minuit.DefineParameter(0, "ImH", 5.0, 0.001, 0, 10);
-  //minuit.DefineParameter(1, "ReH", -7.0, 0.001, -10, 10);
+  minuit.DefineParameter(1, "ReH", -7.0, 0.001, -10, 0);
   //minuit.DefineParameter(2, "ImE",  0.0, 0.01, -5,  5);
   // minuit.DefineParameter(2, "ImE",   0.0, 0.01, -20, 20);
   // minuit.DefineParameter(3, "ReE",   0.0, 0.01, -20, 20);
@@ -49,7 +49,8 @@ void Fitter::Fit() {
   double val_ImH, err_ImH, val_ReH, err_ReH;
   minuit.GetParameter(0, val_ImH, err_ImH);
   minuit.GetParameter(1, val_ReH, err_ReH);
-  double xi = xB / (2 - xB);
+  //double xi = xB / (2 - xB);
+  double	xi = xB * (1 + 0.5*t/Q2) / ( 2-xB + xB*t/Q2 );
 
   FitResult result;
   result.xB = xB;
@@ -70,25 +71,28 @@ void Fitter::chi2Function(Int_t &npar, Double_t *, Double_t &fval,
   //dvcs.setUseDefaultCFF(false); // ensure manual mode
   dvcs.setUseDefaultCFF(true);
   dvcs.setImH(par[0]);
-  //dvcs.setReH(par[1]);
-//dvcs.setImE(par[2]);  // <-- new
-dvcs.setUseWhichCFF(true, true, true, true);
+  dvcs.setReH(par[1]);
+  //dvcs.setImE(par[2]);  // <-- new
+  dvcs.setUseWhichCFF(true, true, true, true);
+  dvcs.setUseDefaultCFF(true);
   /*dvcs.setImE(par[2]);
   dvcs.setReE(par[3]);
   dvcs.setImHt(par[4]);
   dvcs.setReHt(par[5]);*/
 
   double chi2 = 0.0;
-//std::cout<<"adfddgs"<<std::endl;
+  //std::cout<<"adfddgs"<<std::endl;
   for (const auto &point : _instance->_data) {
     dvcs.setPrimaryVars(q_beam, L_beam, L_target, EB, xB, Q2, t, point.phi);
     double bsa_pred = dvcs.BSA();
+    dvcs.setUseDefaultCFF(true);
+    dvcs.setPrimaryVars(q_beam, 0, L_target, EB, xB, Q2, t, point.phi);
     double cs_pred = dvcs.CrossSection();
 
     double delta_bsa = (point.bsa - bsa_pred) / point.bsa_err;
-   // double delta_cs = (point.cs - cs_pred) / point.cs_err;
+    double delta_cs = (point.cs - cs_pred) / point.cs_err;
 
-    chi2 += delta_bsa * delta_bsa ;//+ delta_cs * delta_cs;
+    chi2 += delta_bsa * delta_bsa + delta_cs * delta_cs;
   }
   std::cout << "par[0] (ImH): " << par[0] << ", par[1] (ReH): " << par[1]<< " chi2: " << chi2 << std::endl;
 
@@ -109,6 +113,7 @@ void Fitter::PlotBSAandCrossSection(const std::string &tag) {
 
     _dvcs.setPrimaryVars(q_beam, L_beam, L_target, EB, xB, Q2, t, phi[i]);
     bsa_fit[i] = _dvcs.BSA();
+    _dvcs.setPrimaryVars(q_beam, 0, L_target, EB, xB, Q2, t, phi[i]);
     cs_fit[i] = _dvcs.CrossSection();
   }
 
@@ -146,8 +151,9 @@ void Fitter::PlotBSAandCrossSection(const std::string &tag) {
   cCS->SetGrid();
 
   double maxCS = *std::max_element(cs.begin(), cs.end()) * 1.3;
+  double minCS = *std::min_element(cs.begin(), cs.end()) * 0.7;
   TH1F *frameCS = new TH1F("frameCS", "", 100, 0, 360);
-  frameCS->SetMinimum(0.1);
+  frameCS->SetMinimum(minCS);
   frameCS->SetMaximum(maxCS);
   frameCS->GetXaxis()->SetTitle("#phi [deg]");
   frameCS->GetYaxis()->SetTitle("d^{4} #sigma GeV^{-4}");

@@ -124,10 +124,10 @@ int main() {
 
   std::cout<< "running\n";
   ///
-  EB = 7.54;
+  EB = 5.75;
   DataHandler dh;
-  //auto kinematicBlocks = dh.loadData("/w/hallb-scshelf2102/clas12/singh/Softwares/FemtoFit/source/data/output.csv");
-  auto kinematicBlocks = dh.loadData("/work/clas12/singh/Softwares/newFemtoFit/FemtoFit/source/data/rgkdata1.csv");
+  auto kinematicBlocks = dh.loadData("/w/hallb-scshelf2102/clas12/singh/Softwares/FemtoFit/source/data/output.csv");
+  //auto kinematicBlocks = dh.loadData("/work/clas12/singh/Softwares/newFemtoFit/FemtoFit/source/data/rgkdata1.csv");
 
   //Fitter fitter({});
   std::vector<FitResult> allFitResults;
@@ -142,7 +142,7 @@ int main() {
     std::cout<<"block.bsa.     "<< block.points[i].bsa<<   "block.xs.  "<<block.points[i].cs<<" block.phi.      "<< block.points[i].phi<<std::endl;
     }                  
     fitter.Fit();
-    fitter.PlotBSAandCrossSection(Form("RGKt%.2f_xB%.2f_Q2%.2f", block.t, block.xB, block.Q2));
+    fitter.PlotBSAandCrossSection(Form("CLAS6t%.2f_xB%.2f_Q2%.2f", block.t, block.xB, block.Q2));
 
     if (!fitter.getFitResults().empty()) allFitResults.push_back(fitter.getFitResults().back());
     
@@ -203,7 +203,7 @@ int main() {
   latex.DrawLatex(0.5, 0.85, Form("-t = %.2f GeV^{2}", tval));
 
   // Save
-  cImH->SaveAs(Form("RGK_ImH_vs_xi_t%.2f.png", tval));
+  cImH->SaveAs(Form("CLAS6_ImH_vs_xi_t%.2f.png", tval));
 
   delete gImH;
   delete legend;
@@ -254,7 +254,7 @@ for (const auto &[tval, fitVec] : resultsByT) {
   latex2.DrawLatex(0.5, 0.85, Form("-t = %.2f GeV^{2}", tval));
 
   // Save
-  cReH->SaveAs(Form("RGK_ReH_vs_xi_t%.2f.png", tval));
+  cReH->SaveAs(Form("CLAS6_ReH_vs_xi_t%.2f.png", tval));
 
   delete gReH;
   delete legend2;

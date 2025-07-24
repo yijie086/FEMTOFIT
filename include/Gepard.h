@@ -25,16 +25,22 @@ public:
     }
 
 private:
-    Gepard()
-        : guard{}
-    {
-        // Append Gepard's src directory to PYTHONPATH
-        py::module_::import("sys").attr("path").attr("insert")(0,
-            "/w/hallb-scshelf2102/clas12/singh/Softwares/Gepard/gepard/src");
+Gepard()
+    : guard{}
+{
+    auto sys = py::module_::import("sys");
+    auto path = sys.attr("path");
 
-        gepard = py::module_::import("gepard");
-        km15 = py::module_::import("gepard.fits.th_KM15");
-    }
+    // Add your path
+    path.attr("insert")(0, "/w/hallb-scshelf2102/clas12/singh/Softwares/Gepard/gepard/src");
+
+    // Debug print
+    py::print("sys.path =", path);
+
+    // Try import
+    gepard = py::module_::import("gepard");
+    km15 = py::module_::import("gepard.fits.th_KM15");
+}
 
     py::scoped_interpreter guard;
     py::module_ gepard;

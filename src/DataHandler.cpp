@@ -59,7 +59,9 @@ std::vector<KinematicBlock> DataHandler::loadData(const std::string& filename) {
         point.cs      = cs;
         point.cs_err  = std::sqrt(cs_stat * cs_stat + cs_syst * cs_syst);
 
-        grouped[{xB, Q2, -t}].push_back(point);  // Negate t to convert from -t to t
+        //if (xB<=0.131&& t<=0.111&&Q2<=1.12){
+            grouped[{xB, Q2, -t}].push_back(point);  // Negate t to convert from -t to t
+        //}
 
         //std::cout<<" "<<xB <<" "<< Q2 <<" "<< t <<" "<<phi <<" "<< xlu <<" "<< xlu_stat <<" "<< xlu_syst <<" "<< cs <<" "<< cs_stat <<" "<< cs_syst<<std::endl;
     }

@@ -86,6 +86,14 @@ public:
     ReEt = val;
     FitReEt = true;
   }
+  
+  double GetImHvalue(){
+    return ImH;
+  }
+  double GetReHvalue(){
+    return ReH;
+  }
+
 
   void setUseDefaultCFF(bool useCFF = false) { IsDefaultCFF = useCFF; }
   bool VERB;

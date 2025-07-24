@@ -102,7 +102,7 @@ void Fitter::chi2Function(Int_t &npar, Double_t *, Double_t &fval,
 void Fitter::PlotBSAandCrossSection(const std::string &tag) {
   const int n = _data.size();
   std::vector<double> phi(n), bsa(n), bsa_err(n), cs(n), cs_err(n);
-  std::vector<double> bsa_fit(n), cs_fit(n);
+  std::vector<double> bsa_fit(n), cs_fit(n), bsa_pred(n), cs_pred(n);
 
   for (int i = 0; i < n; ++i) {
     phi[i] = _data[i].phi;
@@ -115,7 +115,22 @@ void Fitter::PlotBSAandCrossSection(const std::string &tag) {
     bsa_fit[i] = _dvcs.BSA();
     _dvcs.setPrimaryVars(q_beam, 0, L_target, EB, xB, Q2, t, phi[i]);
     cs_fit[i] = _dvcs.CrossSection();
+    BMK_DVCS _dvcs_pred(q_beam, L_beam, L_target, EB, xB, Q2, t, phi[i]);
+    _dvcs_pred.setUseDefaultCFF(true);
+    _dvcs_pred.setUseWhichCFF(true, true, true, true);
+    _dvcs_pred.setImH(_dvcs.GetImH_FX(xB * (1 + 0.5*t/Q2) / ( 2-xB + xB*t/Q2 ),t));
+    _dvcs_pred.setReH(_dvcs.GetReH_FX(xB * (1 + 0.5*t/Q2) / ( 2-xB + xB*t/Q2 ),t));
+    //_dvcs_pred.setImH(8.0);
+    //_dvcs_pred.setReH(-6.2);
+    bsa_pred[i] = _dvcs_pred.BSA();
+
+    _dvcs_pred.setPrimaryVars(q_beam, 0, L_target, EB, xB, Q2, t, phi[i]);
+    cs_pred[i] = _dvcs_pred.CrossSection();
   }
+    std::cout << "------------------------CFF_Result------------------------" << std::endl;
+    std::cout << "xi: " << xB * (1 + 0.5*t/Q2) / ( 2-xB + xB*t/Q2 ) << ", Q2: " << Q2 << ", t: " << t << std::endl;
+    std::cout << _dvcs.GetReH_FX(xB * (1 + 0.5*t/Q2) / ( 2-xB + xB*t/Q2 ),t)<< " " << _dvcs.GetImH_FX(xB * (1 + 0.5*t/Q2) / ( 2-xB + xB*t/Q2 ),t) << std::endl;
+    std::cout << _dvcs.GetReHvalue() << " " << _dvcs.GetImHvalue() << std::endl;
 
   // ---- BSA Plot ----
   TCanvas *cBSA = new TCanvas("cBSA", "BSA", 800, 600);
@@ -139,6 +154,11 @@ void Fitter::PlotBSAandCrossSection(const std::string &tag) {
   gBSA_fit->SetLineWidth(2);
   gBSA_fit->Draw("L SAME");
 
+  TGraph *gBSA_pred = new TGraph(n, phi.data(), bsa_pred.data());
+  gBSA_pred->SetLineColor(kBlue);
+  gBSA_pred->SetLineWidth(2);
+  gBSA_pred->Draw("L SAME"); 
+
   TLatex labelBSA;
   labelBSA.SetNDC();
   labelBSA.SetTextSize(0.045);
@@ -158,7 +178,7 @@ void Fitter::PlotBSAandCrossSection(const std::string &tag) {
   frameCS->GetXaxis()->SetTitle("#phi [deg]");
   frameCS->GetYaxis()->SetTitle("d^{4} #sigma GeV^{-4}");
   frameCS->SetStats(0);
-  gPad->SetLogy();
+  //gPad->SetLogy();
   frameCS->Draw();
   
   TGraphErrors *gCS = new TGraphErrors(n, phi.data(), cs.data(), nullptr, cs_err.data());
@@ -170,6 +190,11 @@ void Fitter::PlotBSAandCrossSection(const std::string &tag) {
   gCS_fit->SetLineColor(kMagenta);
   gCS_fit->SetLineWidth(2);
   gCS_fit->Draw("L SAME");
+
+  TGraph *gCS_pred = new TGraph(n, phi.data(), cs_pred.data());
+  gCS_pred->SetLineColor(kBlue);
+  gCS_pred->SetLineWidth(2);
+  gCS_pred->Draw("L SAME");
 
   TLatex labelCS;
   labelCS.SetNDC();

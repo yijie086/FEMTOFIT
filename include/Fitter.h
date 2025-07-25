@@ -18,15 +18,6 @@
 //std::vector<std::tuple<double, double, double>> fittedImH; // (xB, t, value)
 //std::vector<std::tuple<double, double, double>> fittedReH;
 // Repeat for ImE, ReE, etc.
-struct FitResult {
-    double xB;
-    double t;
-    double xi;  // Optional, calculated from xB and Q2
-    double ImH;
-    double ReH;
-    double ImHerr;
-    double ReHerr;
-};
 
 class Fitter {
 public:

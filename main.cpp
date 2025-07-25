@@ -9,6 +9,7 @@
 #include "BMK_DVCS.h"
 #include "KM15Model.h"
 #include "Models.h"
+#include "DispRelSolver.h"
 #include <vector>
 
 int main() {
@@ -142,7 +143,7 @@ int main() {
     std::cout<<"block.bsa.     "<< block.points[i].bsa<<   "block.xs.  "<<block.points[i].cs<<" block.phi.      "<< block.points[i].phi<<std::endl;
     }                  
     fitter.Fit();
-    fitter.PlotBSAandCrossSection(Form("CLAS6t%.2f_xB%.2f_Q2%.2f", block.t, block.xB, block.Q2));
+    //fitter.PlotBSAandCrossSection(Form("CLAS6t%.2f_xB%.2f_Q2%.2f", block.t, block.xB, block.Q2));
 
     if (!fitter.getFitResults().empty()) allFitResults.push_back(fitter.getFitResults().back());
     
@@ -261,4 +262,124 @@ for (const auto &[tval, fitVec] : resultsByT) {
   delete frame2;
   delete cReH;
 }
+
+// === After computing and adding D-terms ===
+DispRelSolver drs;
+std::vector<double> tvals, Dvals;
+
+for (const auto& [tval, fits] : resultsByT) {
+    drs.addCFFs(tval, fits);
+    try {
+        double D = drs.getDterm(tval);
+        tvals.push_back(-tval);
+        Dvals.push_back(D);
+        std::cout << "t = " << -tval << ", D(t) = " << D << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to compute D(t) for t = " << tval << ": " << e.what() << std::endl;
+    }
+}
+
+
+//plotting D terms as function of xi and t
+for (const auto& [tval, fitVec] : resultsByT) {
+    TCanvas* cDxi = new TCanvas("cDxi", "D(t, #xi) vs #xi", 600, 600);
+    cDxi->SetGrid();
+
+    // Create frame histogram
+    TH1F* frameXi = new TH1F("frameXi", "", 100, 0.0, 0.3);
+    frameXi->GetXaxis()->SetTitle("#xi");
+    frameXi->GetYaxis()->SetTitle("D(t, #xi)");
+    frameXi->GetXaxis()->SetTitleSize(0.045);
+    frameXi->GetYaxis()->SetTitleSize(0.045);
+    frameXi->GetYaxis()->SetTitleOffset(0.6);
+    frameXi->GetXaxis()->SetLabelSize(0.04);
+    frameXi->GetYaxis()->SetLabelSize(0.04);
+    frameXi->SetStats(0);
+    frameXi->GetXaxis()->SetRangeUser(0.0, 0.3);
+    frameXi->GetYaxis()->SetRangeUser(-15, 5);
+    frameXi->Draw();
+
+    TGraph* gD_vs_xi = new TGraph();
+    int idx = 0;
+    for (const auto& fit : fitVec) {
+        try {
+            double D = drs.getDterm(tval, fit.xi);
+            gD_vs_xi->SetPoint(idx++, fit.xi, D);
+        } catch (...) {}
+    }
+
+    gD_vs_xi->SetMarkerStyle(21);
+    gD_vs_xi->SetMarkerColor(kGreen+2);
+    gD_vs_xi->SetLineColor(kGreen+2);
+    gD_vs_xi->SetLineWidth(2);
+    gD_vs_xi->Draw("P SAME");
+
+    // Add legend
+    TLegend* legXi = new TLegend(0.6, 0.65, 0.78, 0.85);
+    legXi->AddEntry(gD_vs_xi, "D(t, #xi)", "lp");
+    legXi->SetBorderSize(0);
+    legXi->SetFillStyle(0);
+    legXi->Draw();
+
+    // Annotate with t-value
+    TLatex latexXi;
+    latexXi.SetNDC();
+    latexXi.SetTextSize(0.05);
+    latexXi.SetTextAlign(13);
+    latexXi.DrawLatex(0.5, 0.85, Form("-t = %.2f GeV^{2}", tval));
+
+    // Save
+    cDxi->SaveAs(Form("CLAS6_Dterm_vs_xi_t%.2f.png", tval));
+
+    // Cleanup
+    delete gD_vs_xi;
+    delete legXi;
+    delete frameXi;
+    delete cDxi;
+}
+// === Plot D(t) ===
+TCanvas* cD = new TCanvas("cD", "D-term vs t", 600, 600);
+cD->SetGrid();
+
+double tmin = *std::min_element(tvals.begin(), tvals.end());
+double tmax = *std::max_element(tvals.begin(), tvals.end());
+
+TH1F* frameD = new TH1F("frameD", "", 100, tmin - 0.05, tmax + 0.05);
+frameD->GetXaxis()->SetTitle("-t [GeV^{2}]");
+frameD->GetYaxis()->SetTitle("D(t)");
+frameD->GetXaxis()->SetTitleSize(0.045);
+frameD->GetYaxis()->SetTitleSize(0.045);
+frameD->GetYaxis()->SetTitleOffset(0.6);
+frameD->GetXaxis()->SetLabelSize(0.04);
+frameD->GetYaxis()->SetLabelSize(0.04);
+frameD->GetXaxis()->SetRangeUser(0.0, 0.6);
+frameD->GetYaxis()->SetRangeUser(-15, 2.0);
+frameD->SetStats(0);
+frameD->Draw();
+
+TGraph* gD = new TGraph(tvals.size());
+for (size_t i = 0; i < tvals.size(); ++i) {
+    gD->SetPoint(i, tvals[i], Dvals[i]);
+}
+
+gD->SetMarkerStyle(21);
+gD->SetMarkerColor(kRed + 1);
+gD->SetLineColor(kRed + 1);
+gD->SetLineWidth(2);
+gD->Draw("P SAME");
+
+TLegend* legD = new TLegend(0.6, 0.65, 0.78, 0.85);
+legD->AddEntry(gD, "D(t)", "lp");
+legD->SetBorderSize(0);
+legD->SetFillStyle(0);
+legD->Draw();
+
+cD->SaveAs("CLAS6_Dterm_vs_t.png");
+
+// Cleanup
+delete gD;
+delete legD;
+delete frameD;
+delete cD;
+
 }
